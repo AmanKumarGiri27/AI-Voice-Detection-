@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VoiceGuard — Language & AI Voice Detection</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="noise-overlay" aria-hidden="true"></div>
+
+  <header class="header">
+    <nav class="nav">
+      <a href="#" class="logo">
+        <span class="logo-icon">◉</span>
+        <span>VoiceGuard</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#analyzer">Analyze</a></li>
+        <li><a href="#how-it-works">How it works</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-bg">
+        <div class="gradient-orb orb-1"></div>
+        <div class="gradient-orb orb-2"></div>
+        <div class="gradient-orb orb-3"></div>
+        <div class="grid-pattern"></div>
+      </div>
+      <div class="hero-content">
+        <p class="hero-badge">Language & authenticity detection</p>
+        <h1 class="hero-title">
+          Know the <span class="highlight">voice</span>.<br>
+          Detect the <span class="highlight">source</span>.
+        </h1>
+        <p class="hero-subtitle">
+          Upload or record audio — we detect its language and tell you if it’s human or AI-generated. 
+          One click, clear results.
+        </p>
+        <a href="#analyzer" class="cta-primary">Start analyzing</a>
+      </div>
+      <div class="hero-visual">
+        <div class="wave-card">
+          <div class="wave-bars">
+            <span></span><span></span><span></span><span></span><span></span>
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <p class="wave-label">Ready for your audio</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="features" class="features">
+      <h2 class="section-title">What we detect</h2>
+      <div class="feature-cards">
+        <article class="feature-card">
+          <div class="feature-icon">🌐</div>
+          <h3>Language detection</h3>
+          <p>Identifies the spoken language of your audio in seconds.</p>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon">🤖</div>
+          <h3>AI vs human</h3>
+          <p>Tells you whether the voice is AI-generated or naturally human.</p>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon">🎙️</div>
+          <h3>Record or upload</h3>
+          <p>Speak live, record, or upload a file from your device.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="analyzer" class="analyzer">
+      <h2 class="section-title">Analyze your audio</h2>
+      <p class="section-subtitle">Record yourself, speak now, or drop a file — we’ll detect language and authenticity.</p>
+
+      <div class="analyzer-container">
+        <div class="input-panel">
+          <div class="input-tabs">
+            <button type="button" class="tab active" data-tab="record">Record / Speak</button>
+            <button type="button" class="tab" data-tab="upload">Upload from device</button>
+          </div>
+
+          <div class="tab-content active" id="record-panel">
+            <div class="record-area">
+              <button type="button" class="record-btn" id="recordBtn" aria-label="Start recording">
+                <span class="record-btn-inner">
+                  <span class="record-dot"></span>
+                  <span class="record-label">Hold to speak / Click to record</span>
+                </span>
+              </button>
+              <p class="record-hint">Click to start recording, click again to stop. Or hold the button to speak.</p>
+              <div class="recording-status" id="recordingStatus" hidden>
+                <span class="pulse"></span>
+                <span>Recording…</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="tab-content" id="upload-panel">
+            <div class="upload-area" id="dropZone">
+              <input type="file" id="fileInput" accept="audio/*" hidden>
+              <div class="upload-content">
+                <span class="upload-icon">📁</span>
+                <p><strong>Drop audio here</strong> or click to browse</p>
+                <p class="upload-formats">MP3, WAV, M4A, OGG, WebM</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="selected-file" id="selectedFile" hidden>
+            <span class="file-name" id="fileName"></span>
+            <button type="button" class="clear-file" id="clearFile" aria-label="Remove file">×</button>
+          </div>
+          <div class="analyze-actions">
+            <button type="button" class="btn-analyze" id="analyzeBtn" disabled>Analyze audio</button>
+          </div>
+        </div>
+
+        <div class="results-panel">
+          <div class="results-placeholder" id="resultsPlaceholder">
+            <span class="results-icon">◉</span>
+            <p>Your results will appear here</p>
+            <p class="results-hint">Record or upload audio to see language and AI/human detection.</p>
+          </div>
+          <div class="results-content" id="resultsContent" hidden>
+            <h3>Detection results</h3>
+            <div class="result-row">
+              <span class="result-label">Detected language</span>
+              <span class="result-value" id="resultLanguage">—</span>
+            </div>
+            <div class="result-row">
+              <span class="result-label">Voice type</span>
+              <span class="result-value result-badge" id="resultType">—</span>
+            </div>
+            <div class="result-row">
+              <span class="result-label">Confidence</span>
+              <span class="result-value" id="resultConfidence">—</span>
+            </div>
+            <p class="results-note">Backend integration will replace this with live API results.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="how-it-works" class="how-it-works">
+      <h2 class="section-title">How it works</h2>
+      <ol class="steps">
+        <li>
+          <span class="step-num">1</span>
+          <strong>Record or upload</strong> — Use the mic or choose a file from your device.
+        </li>
+        <li>
+          <span class="step-num">2</span>
+          <strong>We analyze</strong> — Our system detects language and voice authenticity.
+        </li>
+        <li>
+          <span class="step-num">3</span>
+          <strong>Get results</strong> — See the detected language and whether it’s AI or human.
+        </li>
+      </ol>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>VoiceGuard — Language & AI voice detection. Backend integration coming soon.</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
