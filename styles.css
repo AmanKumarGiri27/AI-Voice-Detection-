@@ -44,6 +44,54 @@ body {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
+/* ===== Connection banner (when opened as file) ===== */
+.connection-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1001;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem 1rem;
+  padding: 0.6rem 1rem;
+  background: var(--secondary);
+  color: var(--bg);
+  font-size: 0.85rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.connection-banner-text {
+  font-weight: 500;
+}
+
+.connection-banner-link {
+  color: var(--bg);
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.connection-banner-link:hover {
+  opacity: 0.9;
+}
+
+.connection-banner-hint {
+  opacity: 0.9;
+  font-size: 0.8rem;
+}
+
+.connection-banner code {
+  background: rgba(0,0,0,0.2);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.8em;
+}
+
+body.has-connection-banner .header { top: 52px; }
+body.has-connection-banner .hero { padding-top: 8rem; }
+
 /* ===== Header ===== */
 .header {
   position: fixed;
@@ -230,6 +278,23 @@ body {
   box-shadow: 0 8px 24px var(--accent-glow);
 }
 
+.hero-langs {
+  margin: 0 0 1.5rem;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  animation: fadeUp 0.6s ease-out 0.25s both;
+}
+
+.hero-langs .lang-tag {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  margin: 0 0.15rem;
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-radius: 6px;
+  font-weight: 500;
+}
+
 .hero-visual {
   position: relative;
   z-index: 1;
@@ -310,6 +375,29 @@ body {
   color: var(--text-muted);
   max-width: 560px;
   margin: 0 auto 2.5rem;
+}
+
+.section-langs {
+  margin-bottom: 1rem !important;
+}
+
+.analyzer-langs-callout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  max-width: 560px;
+  margin: 0 auto 1.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--accent-dim);
+  border: 1px solid rgba(57, 197, 207, 0.25);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.analyzer-langs-callout .callout-icon {
+  flex-shrink: 0;
 }
 
 /* ===== Features ===== */
@@ -664,6 +752,20 @@ body {
   margin-top: 1rem;
   font-size: 0.8rem;
   color: var(--text-muted);
+}
+
+.results-error {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(248, 81, 73, 0.1);
+  border: 1px solid rgba(248, 81, 73, 0.3);
+  border-radius: var(--radius);
+  color: var(--danger);
+  font-size: 0.9rem;
+}
+
+.results-error p {
+  margin: 0;
 }
 
 /* Analyze button */

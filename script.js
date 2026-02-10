@@ -1,27 +1,46 @@
 (function () {
   'use strict';
 
-  // ----- DOM refs -----
-  const recordBtn = document.getElementById('recordBtn');
-  const recordingStatus = document.getElementById('recordingStatus');
-  const fileInput = document.getElementById('fileInput');
-  const dropZone = document.getElementById('dropZone');
-  const selectedFile = document.getElementById('selectedFile');
-  const fileName = document.getElementById('fileName');
-  const clearFile = document.getElementById('clearFile');
-  const analyzeBtn = document.getElementById('analyzeBtn');
-  const resultsPlaceholder = document.getElementById('resultsPlaceholder');
-  const resultsContent = document.getElementById('resultsContent');
-  const resultLanguage = document.getElementById('resultLanguage');
-  const resultType = document.getElementById('resultType');
-  const resultConfidence = document.getElementById('resultConfidence');
+  // If page is loaded over http(s), use same origin (relative URL) so API always matches.
+  // If opened as file (file://), point to localhost so user can try after starting server.
+  var origin = window.location.origin;
+  var isServedFromServer = origin && origin !== 'null' && origin.indexOf('file') !== 0;
+  var API_KEY = 'team_hcl_2026_key';
+  var SERVER_URL = 'http://127.0.0.1:8000';
+  var API_URL = isServedFromServer ? '/api/detect-voice' : (SERVER_URL + '/api/detect-voice');
 
-  // ----- State -----
-  let mediaRecorder = null;
-  let recordedChunks = [];
-  let currentAudioBlob = null;
-  let currentAudioFile = null;
-  let stream = null;
+  // Show banner if opened as file (file://) so user opens from server
+  (function () {
+    var banner = document.getElementById('connectionBanner');
+    var link = document.getElementById('connectionBannerLink');
+    if (banner && (!origin || origin === 'null' || origin.indexOf('file') === 0)) {
+      banner.hidden = false;
+      document.body.classList.add('has-connection-banner');
+      if (link) link.href = SERVER_URL;
+    }
+  })();
+
+  var recordBtn = document.getElementById('recordBtn');
+  var recordingStatus = document.getElementById('recordingStatus');
+  var fileInput = document.getElementById('fileInput');
+  var dropZone = document.getElementById('dropZone');
+  var selectedFile = document.getElementById('selectedFile');
+  var fileName = document.getElementById('fileName');
+  var clearFile = document.getElementById('clearFile');
+  var analyzeBtn = document.getElementById('analyzeBtn');
+  var resultsPlaceholder = document.getElementById('resultsPlaceholder');
+  var resultsContent = document.getElementById('resultsContent');
+  var resultsError = document.getElementById('resultsError');
+  var resultsErrorText = document.getElementById('resultsErrorText');
+  var resultLanguage = document.getElementById('resultLanguage');
+  var resultType = document.getElementById('resultType');
+  var resultConfidence = document.getElementById('resultConfidence');
+
+  var mediaRecorder = null;
+  var recordedChunks = [];
+  var currentAudioBlob = null;
+  var currentAudioFile = null;
+  var stream = null;
 
   // ----- Tabs -----
   document.querySelectorAll('.tab').forEach(function (tab) {
@@ -81,7 +100,6 @@
     }
   });
 
-  // Optional: hold to speak (touch/mouse)
   recordBtn.addEventListener('mousedown', function (e) {
     if (e.button !== 0) return;
     if (!recordBtn.classList.contains('recording')) startRecording();
@@ -115,6 +133,7 @@
     currentAudioBlob = null;
     fileInput.value = '';
     selectedFile.hidden = true;
+    hideError();
     showPlaceholder();
     updateAnalyzeButton();
   });
@@ -139,7 +158,6 @@
     handleFile(file);
   });
 
-  // ----- Analyze button -----
   function hasAudio() {
     return currentAudioBlob != null || currentAudioFile != null;
   }
@@ -148,18 +166,98 @@
     analyzeBtn.disabled = !hasAudio();
   }
 
-  // ----- Mock analysis (replace with your backend call) -----
-  function mockAnalyze() {
-    var languages = ['English', 'Spanish', 'French', 'German', 'Hindi', 'Mandarin', 'Arabic', 'Portuguese', 'Japanese'];
-    var isHuman = Math.random() > 0.5;
-    return {
-      language: languages[Math.floor(Math.random() * languages.length)],
-      type: isHuman ? 'Human' : 'AI-generated',
-      confidence: (85 + Math.floor(Math.random() * 14)) + '%'
-    };
+  // ----- Convert any audio to WAV (backend expects soundfile-readable format) -----
+  function arrayBufferToBase64(buffer) {
+    var bytes = new Uint8Array(buffer);
+    var binary = '';
+    for (var i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+  }
+
+  function writeWavHeader(dataView, numChannels, sampleRate, numSamples) {
+    var byteRate = sampleRate * numChannels * 2;
+    var blockAlign = numChannels * 2;
+    var dataSize = numSamples * blockAlign;
+    dataView.setUint8(0, 0x52); dataView.setUint8(1, 0x49); dataView.setUint8(2, 0x46); dataView.setUint8(3, 0x46);
+    dataView.setUint32(4, 36 + dataSize, true);
+    dataView.setUint8(8, 0x57); dataView.setUint8(9, 0x41); dataView.setUint8(10, 0x56); dataView.setUint8(11, 0x45);
+    dataView.setUint8(12, 0x66); dataView.setUint8(13, 0x6d); dataView.setUint8(14, 0x74); dataView.setUint8(15, 0x20);
+    dataView.setUint32(16, 16, true);
+    dataView.setUint16(20, 1, true);
+    dataView.setUint16(22, numChannels, true);
+    dataView.setUint32(24, sampleRate, true);
+    dataView.setUint32(28, byteRate, true);
+    dataView.setUint16(32, blockAlign, true);
+    dataView.setUint16(34, 16, true);
+    dataView.setUint8(36, 0x64); dataView.setUint8(37, 0x61); dataView.setUint8(38, 0x74); dataView.setUint8(39, 0x61);
+    dataView.setUint32(40, dataSize, true);
+  }
+
+  function audioBufferToWav(buffer) {
+    var numChannels = buffer.numberOfChannels;
+    var sampleRate = buffer.sampleRate;
+    var length = buffer.length * numChannels;
+    var numSamples = buffer.length;
+    var wav = new ArrayBuffer(44 + numSamples * numChannels * 2);
+    var view = new DataView(wav);
+    var offset = 44;
+    var channels = [];
+    for (var c = 0; c < numChannels; c++) {
+      channels.push(buffer.getChannelData(c));
+    }
+    for (var i = 0; i < buffer.length; i++) {
+      for (var ch = 0; ch < numChannels; ch++) {
+        var s = Math.max(-1, Math.min(1, channels[ch][i]));
+        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+        offset += 2;
+      }
+    }
+    writeWavHeader(new DataView(wav), numChannels, sampleRate, numSamples);
+    return wav;
+  }
+
+  function blobToArrayBuffer(blob) {
+    return new Promise(function (resolve, reject) {
+      var fr = new FileReader();
+      fr.onload = function () { resolve(fr.result); };
+      fr.onerror = reject;
+      fr.readAsArrayBuffer(blob);
+    });
+  }
+
+  function decodeAudioToWavBase64(blobOrFile) {
+    var blob = blobOrFile instanceof File ? blobOrFile : blobOrFile;
+    return blobToArrayBuffer(blob).then(function (arrayBuffer) {
+      return new Promise(function (resolve, reject) {
+        var ctx = new (window.AudioContext || window.webkitAudioContext)();
+        ctx.decodeAudioData(arrayBuffer.slice(0), function (audioBuffer) {
+          var wav = audioBufferToWav(audioBuffer);
+          resolve(arrayBufferToBase64(wav));
+        }, function (err) {
+          reject(new Error('Could not decode audio: ' + (err && err.message ? err.message : 'unknown')));
+        });
+      });
+    });
+  }
+
+  // ----- API call -----
+  function showError(msg) {
+    if (resultsError && resultsErrorText) {
+      resultsErrorText.textContent = msg;
+      resultsError.hidden = false;
+    }
+    resultsPlaceholder.hidden = true;
+    resultsContent.hidden = true;
+  }
+
+  function hideError() {
+    if (resultsError) resultsError.hidden = true;
   }
 
   function showResults(data) {
+    hideError();
     resultLanguage.textContent = data.language;
     resultType.textContent = data.type;
     resultType.className = 'result-value result-badge ' + (data.type.toLowerCase().indexOf('human') !== -1 ? 'human' : 'ai');
@@ -169,6 +267,7 @@
   }
 
   function showPlaceholder() {
+    hideError();
     resultsPlaceholder.hidden = false;
     resultsContent.hidden = true;
   }
@@ -176,16 +275,57 @@
   analyzeBtn.addEventListener('click', function () {
     if (!hasAudio()) return;
 
+    var blob = currentAudioBlob || currentAudioFile;
     analyzeBtn.disabled = true;
     analyzeBtn.textContent = 'Analyzing…';
+    hideError();
 
-    // Simulate API delay; replace with real fetch to your backend
-    setTimeout(function () {
-      var result = mockAnalyze();
-      showResults(result);
-      analyzeBtn.disabled = false;
-      analyzeBtn.textContent = 'Analyze audio';
-    }, 1200);
+    decodeAudioToWavBase64(blob)
+      .then(function (audioBase64) {
+        return fetch(API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': API_KEY
+          },
+          body: JSON.stringify({
+            language: 'en',
+            audio_format: 'wav',
+            audio_base64: audioBase64
+          })
+        });
+      })
+      .then(function (res) {
+        if (!res.ok) {
+          return res.json().then(function (body) {
+            throw new Error(body.detail || res.statusText || 'Request failed');
+          }).catch(function () {
+            throw new Error(res.statusText || 'Request failed');
+          });
+        }
+        return res.json();
+      })
+      .then(function (data) {
+        var type = data.prediction === 'HUMAN' ? 'Human' : 'AI-generated';
+        var confidence = typeof data.confidence === 'number'
+          ? Math.round(data.confidence * 100) + '%'
+          : String(data.confidence);
+        showResults({
+          language: data.language || '—',
+          type: type,
+          confidence: confidence
+        });
+      })
+      .catch(function (err) {
+        var msg = err.message || 'Analysis failed.';
+        if (msg === 'Failed to fetch' || msg.indexOf('NetworkError') !== -1 || msg.indexOf('Load failed') !== -1) {
+          msg = 'Connection failed. Start the server (run run.bat or: python -m uvicorn main:app --reload from the ai-voice-detection- folder), then open this app at ' + SERVER_URL + ' in your browser.';
+        }
+        showError(msg);
+      })
+      .finally(function () {
+        analyzeBtn.disabled = false;
+        analyzeBtn.textContent = 'Analyze audio';
+      });
   });
-
 })();
